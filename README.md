@@ -38,4 +38,4 @@ And just run the main script
 sudo ./deploy.sh
 ```
 
-#### You are ready to go!! :)
+#### Thats all...Enjoy and Thank you!!
