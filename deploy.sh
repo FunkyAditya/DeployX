@@ -61,12 +61,28 @@ if sudo lsof -i:"$port" > /dev/null; then
     exit 1
 fi
 
-new_website_dir="/var/www/testwebsite"
+base_dir="/var/www/testwebsite"
+new_website_dir="$base_dir"
+counter=2
+while [ -d "$new_website_dir" ]; do
+    new_website_dir="${base_dir}${counter}"
+    ((counter++))
+done
 
 sudo mkdir -p "$new_website_dir"
 sudo cp -r "$website_dir/"* "$new_website_dir/"
 sudo chown -R www-data:www-data "$new_website_dir"
 sudo chmod -R 755 "$new_website_dir"
+
+conf_file="/etc/nginx/sites-available/testwebsite"
+conf_link="/etc/nginx/sites-enabled/testwebsite"
+
+counter=2
+while [ -f "$conf_file" ] || [ -L "$conf_link" ]; do
+    conf_file="/etc/nginx/sites-available/testwebsite${counter}"
+    conf_link="/etc/nginx/sites-enabled/testwebsite${counter}"
+    ((counter++))
+done
 
 conf_block="
 server {
@@ -81,7 +97,8 @@ server {
 }
 "
 
-echo "$conf_block" | sudo tee -a /etc/nginx/sites-available/default > /dev/null
+echo "$conf_block" | sudo tee "$conf_file" > /dev/null
+sudo ln -s "$conf_file" "$conf_link"
 
 if ! sudo nginx -t; then
     echo -e "${RED}Nginx configuration failed. Please check the config file.${NC}"
@@ -94,5 +111,5 @@ if ! sudo ufw status | grep -q "$port"; then
     sudo ufw allow "$port"
 fi
 
-echo -e "${GREEN}Website deployed successfully on port $port.${NC}"
+echo -e "${GREEN}Website deployed successfully at $new_website_dir on port $port.${NC}"
 echo -e "${CYAN}==============================================${NC}"
